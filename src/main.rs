@@ -26,32 +26,38 @@ fn main() {
 
     // Collect file name
     let args: Vec<String> = env::args().collect();
-    let filename = &args[1];
 
-    // Read file if available
-    let contents = fs::read_to_string(filename)
-        .expect("Something went wrong reading the file");
+    if args.len() != 2 {
+        println!("File not detected!");
+    } else {
+        
+        let filename = &args[1];
 
-    // Run instructions from file
-    for instruction in contents.lines() {
+        // Read file if available
+        let contents = fs::read_to_string(filename)
+            .expect("Something went wrong reading the file");
 
-        let command: Vec<&str> = instruction.split(" ").collect();
+        // Run instructions from file
+        for instruction in contents.lines() {
 
-        for _ in 0..command[1].parse::<u32>().unwrap() {
+            let command: Vec<&str> = instruction.split(" ").collect();
 
-            // Run instruction
-            if let Err(e) = process_instr(&command[0], &mut turtle) {
-                println!("Application error: {}", e);
+            for _ in 0..command[1].parse::<u32>().unwrap() {
+
+                // Run instruction
+                if let Err(e) = process_instr(&command[0], &mut turtle) {
+                    println!("Application error: {}", e);
+                }
+
+                // Clear turtle indicator pos
+                if turtle.pen_down {
+                    draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
+                } else {
+                    draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
+                };
             }
 
-            // Clear turtle indicator pos
-            if turtle.pen_down {
-                draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
-            } else {
-                draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
-            };
         }
-
     }
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
