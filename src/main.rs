@@ -1,11 +1,18 @@
 extern crate minifb;
 
-use minifb::{Key, WindowOptions, Window, KeyRepeat};
+use minifb::{Key, WindowOptions, Window, KeyRepeat}; // For window
+use std::fs; // For file reading
 
 const WIDTH: usize = 1280;
 const HEIGHT: usize = 720;
 
 fn main() {
+
+    // Read file if available
+    let contents = fs::read_to_string("turtle.txt")
+        .expect("Something went wrong reading the file");
+
+    // println!("{}", contents.next().unwrap());
 
     // Pixel buffer
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
@@ -21,6 +28,27 @@ fn main() {
 
     // Create turtle
     let mut turtle = Turtle::new((0, 0), Orientation::NORTH, true, 10);
+
+    for instruction in contents.lines() {
+
+        let command: Vec<&str> = instruction.split(" ").collect();
+
+        for _ in 0..command[1].parse::<u32>().unwrap() {
+
+            // Run instruction
+            if let Err(e) = process_instr(&command[0], &mut turtle) {
+                println!("Application error: {}", e);
+            }
+
+            // Clear turtle indicator pos
+            if turtle.pen_down {
+                draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
+            } else {
+                draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
+            };
+        }
+
+    }
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
@@ -62,7 +90,6 @@ struct Turtle {
 
 impl Turtle {
     fn new(pos: (i32, i32), direction: Orientation, pen_down: bool, size: u32) -> Turtle {
-
         Turtle { pos, direction, pen_down, size }
     }
 }
@@ -119,6 +146,38 @@ fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result<(),
         turtle.pos.0 -= 1;
         turtle.direction = Orientation::WEST;
     } else if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
+        if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
+            return Err("Turtle out of range!");
+        }
+        turtle.pos.0 += 1;
+        turtle.direction = Orientation::EAST;
+    }
+
+    Ok(())
+}
+
+fn process_instr(instr: &str, turtle: &mut Turtle) -> Result<(), &'static str> {
+
+    if instr == "NORTH" {
+        if turtle.pos.1 - 1 < 0 {
+            return Err("Turtle out of range!");
+        }
+        turtle.pos.1 -= 1;
+        turtle.direction = Orientation::NORTH;
+    } else if instr == "SOUTH" {
+        if turtle.pos.1 + 1 + turtle.size as i32 >= HEIGHT as i32 {
+            return Err("Turtle out of range!");
+        }
+        turtle.pos.1 += 1;
+        turtle.direction = Orientation::SOUTH;
+    }
+    if instr == "WEST" {
+        if turtle.pos.0 - 1 < 0 {
+            return Err("Turtle out of range!");
+        }
+        turtle.pos.0 -= 1;
+        turtle.direction = Orientation::WEST;
+    } else if instr == "EAST" {
         if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
             return Err("Turtle out of range!");
         }
