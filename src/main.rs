@@ -99,26 +99,26 @@ fn draw_last(buffer: &mut Vec<u32>, pos: (i32, i32), last_colour: &Vec<u32>, w: 
 
 fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result<(), &'static str> {
 
-    if window.is_key_down(Key::W) {
+    if window.is_key_down(Key::W) || window.is_key_down(Key::Up) {
         if turtle.pos.1 - 1 < 0 {
             return Err("Turtle out of range!");
         }
         turtle.pos.1 -= 1;
         turtle.direction = Orientation::NORTH;
-    } else if window.is_key_down(Key::S) {
+    } else if window.is_key_down(Key::S) || window.is_key_down(Key::Down) {
         if turtle.pos.1 + 1 + turtle.size as i32 >= HEIGHT as i32 {
             return Err("Turtle out of range!");
         }
         turtle.pos.1 += 1;
         turtle.direction = Orientation::SOUTH;
     }
-    if window.is_key_down(Key::A) {
+    if window.is_key_down(Key::A) || window.is_key_down(Key::Left) {
         if turtle.pos.0 - 1 < 0 {
             return Err("Turtle out of range!");
         }
         turtle.pos.0 -= 1;
         turtle.direction = Orientation::WEST;
-    } else if window.is_key_down(Key::D) {
+    } else if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
         if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
             return Err("Turtle out of range!");
         }
