@@ -16,3 +16,6 @@ Supports NORTH, SOUTH, EAST and WEST directions. You can also use the special in
 
 
 If compiling, use cargo run filename.txt to use this programmed file.
+
+
+The interpreter ignores all code after the second space so you can use this to make comments!
