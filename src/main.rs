@@ -54,10 +54,49 @@ fn main() {
                 
                 for _ in 0..command[1].parse::<u32>().unwrap() {
 
-                    // Run instruction
-                    if let Err(e) = process_instr(&command[0], &mut turtle) {
-                        println!("Application error: {}", e);
+                    if command[0].contains("NORTH") {
+                        if let Err(e) = process_instr("NORTH", &mut turtle) {
+                            println!("Application error: {}", e);
+                        }
+
+                        if command[0].contains("EAST") {
+                            if let Err(e) = process_instr("EAST", &mut turtle) {
+                                println!("Application error: {}", e);
+                            }
+                        } else if command[0].contains("WEST") {
+                            if let Err(e) = process_instr("WEST", &mut turtle) {
+                                println!("Application error: {}", e);
+                            }
+                        }
+
+                    } else if command[0].contains("SOUTH") {
+                        if let Err(e) = process_instr("SOUTH", &mut turtle) {
+                            println!("Application error: {}", e);
+                        }
+
+                        if command[0].contains("EAST") {
+                            if let Err(e) = process_instr("EAST", &mut turtle) {
+                                println!("Application error: {}", e);
+                            }
+                        } else if command[0].contains("WEST") {
+                            if let Err(e) = process_instr("WEST", &mut turtle) {
+                                println!("Application error: {}", e);
+                            }
+                        }
+                    } else if command[0].contains("EAST") {
+                        if let Err(e) = process_instr("EAST", &mut turtle) {
+                            println!("Application error: {}", e);
+                        }
+                    } else if command[0].contains("WEST") {
+                        if let Err(e) = process_instr("WEST", &mut turtle) {
+                            println!("Application error: {}", e);
+                        }
                     }
+
+                    // // Run instruction
+                    // if let Err(e) = process_instr(&command[0], &mut turtle) {
+                    //     println!("Application error: {}", e);
+                    // }
 
                     // Clear turtle indicator pos
                     if turtle.pen_down {
@@ -189,8 +228,7 @@ fn process_instr(instr: &str, turtle: &mut Turtle) -> Result<(), &'static str> {
         }
         turtle.pos.1 += 1;
         turtle.direction = Orientation::SOUTH;
-    }
-    if instr == "WEST" {
+    } else if instr == "WEST" {
         if turtle.pos.0 - 1 < 0 {
             return Err("Turtle out of range!");
         }
