@@ -2,17 +2,12 @@ extern crate minifb;
 
 use minifb::{Key, WindowOptions, Window, KeyRepeat}; // For window
 use std::fs; // For file reading
+use std::env; // For args
 
 const WIDTH: usize = 1280;
 const HEIGHT: usize = 720;
 
 fn main() {
-
-    // Read file if available
-    let contents = fs::read_to_string("turtle.txt")
-        .expect("Something went wrong reading the file");
-
-    // println!("{}", contents.next().unwrap());
 
     // Pixel buffer
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
@@ -29,6 +24,15 @@ fn main() {
     // Create turtle
     let mut turtle = Turtle::new((0, 0), Orientation::NORTH, true, 10);
 
+    // Collect file name
+    let args: Vec<String> = env::args().collect();
+    let filename = &args[1];
+
+    // Read file if available
+    let contents = fs::read_to_string(filename)
+        .expect("Something went wrong reading the file");
+
+    // Run instructions from file
     for instruction in contents.lines() {
 
         let command: Vec<&str> = instruction.split(" ").collect();
