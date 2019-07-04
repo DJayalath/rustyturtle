@@ -27,10 +27,11 @@ fn main() {
     // Collect file name
     let args: Vec<String> = env::args().collect();
 
+    // Handle case where file not given in args
     if args.len() != 2 {
         println!("File not detected!");
     } else {
-        
+
         let filename = &args[1];
 
         // Read file if available
@@ -42,19 +43,27 @@ fn main() {
 
             let command: Vec<&str> = instruction.split(" ").collect();
 
-            for _ in 0..command[1].parse::<u32>().unwrap() {
-
-                // Run instruction
-                if let Err(e) = process_instr(&command[0], &mut turtle) {
-                    println!("Application error: {}", e);
+            if command[0] == "PEN" {
+                if command[1] == "DOWN" {
+                    turtle.pen_down = true;
                 }
+                else if command[1] == "UP" {
+                    turtle.pen_down = false;
+                }
+            } else {
+                
+                for _ in 0..command[1].parse::<u32>().unwrap() {
 
-                // Clear turtle indicator pos
-                if turtle.pen_down {
-                    draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
-                } else {
-                    draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
-                };
+                    // Run instruction
+                    if let Err(e) = process_instr(&command[0], &mut turtle) {
+                        println!("Application error: {}", e);
+                    }
+
+                    // Clear turtle indicator pos
+                    if turtle.pen_down {
+                        draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
+                    }
+                }
             }
 
         }
