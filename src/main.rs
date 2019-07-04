@@ -27,6 +27,8 @@ fn main() {
     // Collect file name
     let args: Vec<String> = env::args().collect();
 
+    let mut colour: u32 = 0x00FFFFFF;
+
     // Handle case where file not given in args
     if args.len() != 2 {
         println!("File not detected!");
@@ -50,6 +52,10 @@ fn main() {
                 else if command[1] == "UP" {
                     turtle.pen_down = false;
                 }
+            } else if command[0] == "COLOUR" || command[0] == "COLOR" {
+
+                colour = command[1].parse::<u32>().unwrap();
+
             } else {
                 
                 for _ in 0..command[1].parse::<u32>().unwrap() {
@@ -95,7 +101,7 @@ fn main() {
 
                     // Clear turtle indicator pos
                     if turtle.pen_down {
-                        draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
+                        draw(&mut buffer, turtle.pos, colour, turtle.size, turtle.size);
                     }
                 }
             }
@@ -107,7 +113,7 @@ fn main() {
 
         // Clear turtle indicator pos
         if turtle.pen_down {
-            draw(&mut buffer, turtle.pos, 0x00FFFFFF, turtle.size, turtle.size);
+            draw(&mut buffer, turtle.pos, colour, turtle.size, turtle.size);
         } else {
             draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
         };

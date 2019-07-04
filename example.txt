@@ -1,3 +1,4 @@
+COLOUR 255255255
 PEN UP // Move to start
 EAST 200
 SOUTH 200
