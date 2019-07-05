@@ -3,7 +3,7 @@ extern crate minifb;
 use minifb::{Key, WindowOptions, Window, KeyRepeat}; // For window
 use std::fs; // For file reading
 use std::env; // For args
-use std::error::Error;
+use std::process;
 
 const WIDTH: usize = 1280;
 const HEIGHT: usize = 720;
@@ -32,7 +32,8 @@ fn main() {
         let filename = &args[1];
 
         if let Err(e) = process_file(filename.clone(), &mut turtle, &mut pixel_buffer) {
-            println!("Application error: {}", e);
+            println!("ERROR - {}", e);
+            process::exit(1);
         }
     }
 
@@ -46,7 +47,7 @@ fn main() {
         };
 
         if let Err(e) = process_input(&mut window, &mut turtle) {
-            println!("Application error: {}", e);
+            println!("ERROR - {}", e);
         }
 
         if window.is_key_pressed(Key::Space, KeyRepeat::No) {
@@ -122,12 +123,29 @@ impl Turtle {
     fn new(pos: (i32, i32), direction: Orientation, pen_down: bool, size: u32, colour: u32) -> Turtle {
         Turtle { pos, direction, pen_down, size, colour }
     }
+
+    fn displace(&mut self, amt: (i32, i32)) -> Result<(), &'static str> {
+
+        if self.pos.0 + amt.0 < 0 ||
+            self.pos.1 + amt.1 < 0 ||
+            self.pos.0 + amt.0 + self.size as i32 >= WIDTH as i32 ||
+            self.pos.1 + amt.1 + self.size as i32 >= HEIGHT as i32 {
+            return Err("Requested movement outside range!");
+        }
+
+        self.pos.0 += amt.0;
+        self.pos.1 += amt.1;
+
+        Ok(())
+    }
 }
 
-fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelBuffer) -> Result<(), &'static str> {
+fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelBuffer) -> Result<(), String> {
 
     // Read file if available
     let contents = fs::read_to_string(filename).expect("Failed to read file contents!");
+
+    let mut line_num = 1;
 
     // Run instructions from file
     for instruction in contents.lines() {
@@ -140,7 +158,10 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
                 turtle.pen_down = match val {
                     "UP" => false,
                     "DOWN" => true,
-                    _ => {return Err("Unknown instruction for PEN. Use either 'PEN DOWN' or 'PEN UP'");},
+                    _ => {
+                        let msg = format!("Line {}: Unknown instruction for PEN. Use either 'PEN DOWN' or 'PEN UP'", line_num);
+                        return Err(msg.clone());
+                        },
                 };
             },
             "COLOUR" | "COLOR" => {
@@ -149,7 +170,7 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
             _ => {
 
                 let mut mov_amt: (i32, i32) = (0, 0);
-                
+
                 if query.contains("NORTH") {
                     mov_amt.1 -= 1;
                 }
@@ -166,12 +187,18 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
                 let repeats = val.parse::<u32>().expect("Failed to parse repeats! Format as a positive integer.");
 
                 for _ in 0..repeats {
-                    turtle.pos.0 += mov_amt.0;
-                    turtle.pos.1 += mov_amt.1;
+
+                    if let Err(e) = turtle.displace(mov_amt) {
+                        let msg = format!("Line {}: {}", line_num, e);
+                        return Err(msg.clone());
+                    }
+
                     if turtle.pen_down {pixel_buffer.draw(&turtle, DrawMode::NORMAL)};
                 }
             }
         }
+
+        line_num += 1;
 
     }
 
@@ -180,31 +207,25 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
 
 fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result<(), &'static str> {
 
+    let mut mov_amt: (i32, i32) = (0, 0);
+
     if window.is_key_down(Key::W) || window.is_key_down(Key::Up) {
-        if turtle.pos.1 - 1 < 0 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.1 -= 1;
+        mov_amt.1 -= 1;
         turtle.direction = Orientation::NORTH;
     } else if window.is_key_down(Key::S) || window.is_key_down(Key::Down) {
-        if turtle.pos.1 + 1 + turtle.size as i32 >= HEIGHT as i32 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.1 += 1;
+        mov_amt.1 += 1;
         turtle.direction = Orientation::SOUTH;
     }
     if window.is_key_down(Key::A) || window.is_key_down(Key::Left) {
-        if turtle.pos.0 - 1 < 0 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.0 -= 1;
+        mov_amt.0 -= 1;
         turtle.direction = Orientation::WEST;
     } else if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
-        if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.0 += 1;
+        mov_amt.0 += 1;
         turtle.direction = Orientation::EAST;
+    }
+
+    if let Err(e) = turtle.displace(mov_amt) {
+        println!("Application error: {}", e);
     }
 
     Ok(())
