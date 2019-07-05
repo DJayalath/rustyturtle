@@ -3,31 +3,26 @@ extern crate minifb;
 use minifb::{Key, WindowOptions, Window, KeyRepeat}; // For window
 use std::fs; // For file reading
 use std::env; // For args
+use std::error::Error;
 
 const WIDTH: usize = 1280;
 const HEIGHT: usize = 720;
 
 fn main() {
 
-    // Pixel buffer
-    let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
-    let mut last_colour = Vec::new();
+    // Create turtle
+    let mut turtle = Turtle::new((0, 0), Orientation::NORTH, true, 10, 0x00FFFFFF);
+
+    // Construct pixel buffer
+    let mut pixel_buffer = PixelBuffer::new(vec![0; WIDTH * HEIGHT], vec![0; (turtle.size * turtle.size) as usize]);
 
     // Create window
-    let mut window = Window::new("rustyturtle",
-                                 WIDTH,
-                                 HEIGHT,
-                                 WindowOptions::default()).unwrap_or_else(|e| {
+    let mut window = Window::new("rustyturtle", WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
         panic!("{}", e);
     });
 
-    // Create turtle
-    let mut turtle = Turtle::new((0, 0), Orientation::NORTH, true, 10);
-
     // Collect file name
     let args: Vec<String> = env::args().collect();
-
-    let mut colour: u32 = 0x00FFFFFF;
 
     // Handle case where file not given in args
     if args.len() != 2 {
@@ -36,76 +31,8 @@ fn main() {
 
         let filename = &args[1];
 
-        // Read file if available
-        let contents = fs::read_to_string(filename)
-            .expect("Something went wrong reading the file");
-
-        // Run instructions from file
-        for instruction in contents.lines() {
-
-            let command: Vec<&str> = instruction.split(" ").collect();
-
-            if command[0] == "PEN" {
-                if command[1] == "DOWN" {
-                    turtle.pen_down = true;
-                }
-                else if command[1] == "UP" {
-                    turtle.pen_down = false;
-                }
-            } else if command[0] == "COLOUR" || command[0] == "COLOR" {
-
-                colour = command[1].parse::<u32>().unwrap();
-
-            } else {
-                
-                for _ in 0..command[1].parse::<u32>().unwrap() {
-
-                    if command[0].contains("NORTH") {
-                        if let Err(e) = process_instr("NORTH", &mut turtle) {
-                            println!("Application error: {}", e);
-                        }
-
-                        if command[0].contains("EAST") {
-                            if let Err(e) = process_instr("EAST", &mut turtle) {
-                                println!("Application error: {}", e);
-                            }
-                        } else if command[0].contains("WEST") {
-                            if let Err(e) = process_instr("WEST", &mut turtle) {
-                                println!("Application error: {}", e);
-                            }
-                        }
-
-                    } else if command[0].contains("SOUTH") {
-                        if let Err(e) = process_instr("SOUTH", &mut turtle) {
-                            println!("Application error: {}", e);
-                        }
-
-                        if command[0].contains("EAST") {
-                            if let Err(e) = process_instr("EAST", &mut turtle) {
-                                println!("Application error: {}", e);
-                            }
-                        } else if command[0].contains("WEST") {
-                            if let Err(e) = process_instr("WEST", &mut turtle) {
-                                println!("Application error: {}", e);
-                            }
-                        }
-                    } else if command[0].contains("EAST") {
-                        if let Err(e) = process_instr("EAST", &mut turtle) {
-                            println!("Application error: {}", e);
-                        }
-                    } else if command[0].contains("WEST") {
-                        if let Err(e) = process_instr("WEST", &mut turtle) {
-                            println!("Application error: {}", e);
-                        }
-                    }
-
-                    // Clear turtle indicator pos
-                    if turtle.pen_down {
-                        draw(&mut buffer, turtle.pos, colour, turtle.size, turtle.size);
-                    }
-                }
-            }
-
+        if let Err(e) = process_file(filename.clone(), &mut turtle, &mut pixel_buffer) {
+            println!("Application error: {}", e);
         }
     }
 
@@ -113,9 +40,9 @@ fn main() {
 
         // Clear turtle indicator pos
         if turtle.pen_down {
-            draw(&mut buffer, turtle.pos, colour, turtle.size, turtle.size);
+            pixel_buffer.draw(&turtle, DrawMode::NORMAL);
         } else {
-            draw_last(&mut buffer, turtle.pos, &last_colour, turtle.size, turtle.size);
+            pixel_buffer.draw(&turtle, DrawMode::PASSIVE);
         };
 
         if let Err(e) = process_input(&mut window, &mut turtle) {
@@ -126,10 +53,10 @@ fn main() {
             turtle.pen_down = !turtle.pen_down;
         }
 
-        last_colour = draw(&mut buffer, turtle.pos, 0x0000FF00, turtle.size, turtle.size);
+        pixel_buffer.draw(&turtle, DrawMode::ACTIVE);
 
         // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
-        window.update_with_buffer(&buffer).unwrap();
+        window.update_with_buffer(&pixel_buffer.full).unwrap();
     }
 }
 
@@ -140,47 +67,115 @@ enum Orientation {
     WEST,
 }
 
+enum DrawMode {
+    ACTIVE,
+    NORMAL,
+    PASSIVE,
+}
+
+struct PixelBuffer {
+    full: Vec<u32>,
+    last: Vec<u32>,
+}
+
+impl PixelBuffer {
+    fn new(full: Vec<u32>, last: Vec<u32>) -> PixelBuffer {
+        PixelBuffer { full, last }
+    }
+
+    // TODO: Vector error checking
+    fn draw(&mut self, turtle: &Turtle, mode: DrawMode) {
+
+        let mut indexer = turtle.pos.1 * WIDTH as i32 + turtle.pos.0;
+        let mut counter = 0;
+
+        for _ in 0..turtle.size {
+            for j in 0..turtle.size { 
+                self.full[indexer as usize + j as usize] = 
+                    match mode {
+                        DrawMode::ACTIVE => {
+                            self.last[counter] = self.full[indexer as usize + j as usize];
+                            0x0000FF00
+                        },
+                        DrawMode::NORMAL => {
+                            self.last[counter] = self.full[indexer as usize + j as usize];
+                            turtle.colour
+                        },
+                        DrawMode::PASSIVE => self.last[counter],
+                    };
+                counter += 1;
+            }
+            indexer += WIDTH as i32;
+        }
+    }
+}
+
 struct Turtle {
     pos: (i32, i32),
     direction: Orientation,
     pen_down: bool,
     size: u32,
+    colour: u32,
 }
 
 impl Turtle {
-    fn new(pos: (i32, i32), direction: Orientation, pen_down: bool, size: u32) -> Turtle {
-        Turtle { pos, direction, pen_down, size }
+    fn new(pos: (i32, i32), direction: Orientation, pen_down: bool, size: u32, colour: u32) -> Turtle {
+        Turtle { pos, direction, pen_down, size, colour }
     }
 }
 
-fn draw(buffer: &mut Vec<u32>, pos: (i32, i32), colour: u32, w: u32, h: u32) -> Vec<u32> {
-    
-    let mut index = pos.1 * WIDTH as i32 + pos.0;
-    let mut last_colour: Vec<u32> = Vec::new();
+fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelBuffer) -> Result<(), &'static str> {
 
-    for _ in 0..h {
-        for j in 0..w { 
-            last_colour.push(buffer[index as usize + j as usize]);
-            buffer[index as usize + j as usize] = colour;
+    // Read file if available
+    let contents = fs::read_to_string(filename).expect("Failed to read file contents!");
+
+    // Run instructions from file
+    for instruction in contents.lines() {
+
+        let command: Vec<&str> = instruction.split(" ").collect();
+        let (query, val) = (command[0], command[1]);
+
+        match query {
+            "PEN" => {
+                turtle.pen_down = match val {
+                    "UP" => false,
+                    "DOWN" => true,
+                    _ => {return Err("Unknown instruction for PEN. Use either 'PEN DOWN' or 'PEN UP'");},
+                };
+            },
+            "COLOUR" | "COLOR" => {
+                turtle.colour = val.parse::<u32>().expect("Failed to parse colour! Format RGB e.g. 255255255");
+            },
+            _ => {
+
+                let mut mov_amt: (i32, i32) = (0, 0);
+                
+                if query.contains("NORTH") {
+                    mov_amt.1 -= 1;
+                }
+                if query.contains("SOUTH") {
+                    mov_amt.1 += 1;
+                }
+                if query.contains("EAST") {
+                    mov_amt.0 += 1;
+                }
+                if query.contains("WEST") {
+                    mov_amt.0 -= 1;
+                }
+
+                let repeats = val.parse::<u32>().expect("Failed to parse repeats! Format as a positive integer.");
+
+                for _ in 0..repeats {
+                    turtle.pos.0 += mov_amt.0;
+                    turtle.pos.1 += mov_amt.1;
+                    if turtle.pen_down {pixel_buffer.draw(&turtle, DrawMode::NORMAL)};
+                }
+            }
         }
-        index += WIDTH as i32;
+
     }
 
-    last_colour
-}
-
-fn draw_last(buffer: &mut Vec<u32>, pos: (i32, i32), last_colour: &Vec<u32>, w: u32, h: u32) {
-        
-    let mut index = pos.1 * WIDTH as i32 + pos.0;
-    let mut colour_index = 0;
-
-    for _ in 0..h {
-        for j in 0..w { 
-            buffer[index as usize + j as usize] = last_colour[colour_index];
-            colour_index += 1;
-        }
-        index += WIDTH as i32;
-    }
+    Ok(())
 }
 
 fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result<(), &'static str> {
@@ -205,37 +200,6 @@ fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result<(),
         turtle.pos.0 -= 1;
         turtle.direction = Orientation::WEST;
     } else if window.is_key_down(Key::D) || window.is_key_down(Key::Right) {
-        if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.0 += 1;
-        turtle.direction = Orientation::EAST;
-    }
-
-    Ok(())
-}
-
-fn process_instr(instr: &str, turtle: &mut Turtle) -> Result<(), &'static str> {
-
-    if instr == "NORTH" {
-        if turtle.pos.1 - 1 < 0 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.1 -= 1;
-        turtle.direction = Orientation::NORTH;
-    } else if instr == "SOUTH" {
-        if turtle.pos.1 + 1 + turtle.size as i32 >= HEIGHT as i32 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.1 += 1;
-        turtle.direction = Orientation::SOUTH;
-    } else if instr == "WEST" {
-        if turtle.pos.0 - 1 < 0 {
-            return Err("Turtle out of range!");
-        }
-        turtle.pos.0 -= 1;
-        turtle.direction = Orientation::WEST;
-    } else if instr == "EAST" {
         if turtle.pos.0 + 1 + turtle.size as i32 >= WIDTH as i32 {
             return Err("Turtle out of range!");
         }
