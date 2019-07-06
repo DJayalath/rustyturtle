@@ -18,7 +18,8 @@ fn main() {
 
     // Create window
     let mut window = Window::new("rustyturtle", WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
-        panic!("CRITICAL ERROR - {}", e);
+        println!("CRITICAL ERROR - {}", e);
+        process::exit(1)
     });
 
     // Collect file name
