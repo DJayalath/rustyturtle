@@ -18,7 +18,7 @@ fn main() {
 
     // Create window
     let mut window = Window::new("rustyturtle", WIDTH, HEIGHT, WindowOptions::default()).unwrap_or_else(|e| {
-        panic!("{}", e);
+        panic!("CRITICAL ERROR - {}", e);
     });
 
     // Collect file name
@@ -26,7 +26,7 @@ fn main() {
 
     // Handle case where file not given in args
     if args.len() != 2 {
-        println!("File not detected!");
+        println!("Note: No draw file specified");
     } else {
 
         let filename = &args[1];
@@ -84,7 +84,6 @@ impl PixelBuffer {
         PixelBuffer { full, last }
     }
 
-    // TODO: Vector error checking
     fn draw(&mut self, turtle: &Turtle, mode: DrawMode) {
 
         let mut indexer = turtle.pos.1 * WIDTH as i32 + turtle.pos.0;
@@ -143,7 +142,14 @@ impl Turtle {
 fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelBuffer) -> Result<(), String> {
 
     // Read file if available
-    let contents = fs::read_to_string(filename).expect("Failed to read file contents!");
+    let contents = fs::read_to_string(filename);
+    let contents = match contents {
+        Ok(file) => file,
+        Err(e) => {
+            let msg = format!("IO Error: {}", e);
+            return Err(msg.clone());
+        }
+    };
 
     let mut line_num = 1;
 
@@ -159,13 +165,20 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
                     "UP" => false,
                     "DOWN" => true,
                     _ => {
-                        let msg = format!("Line {}: Unknown instruction for PEN. Use either 'PEN DOWN' or 'PEN UP'", line_num);
+                        let msg = format!("Line {}: unknown instruction for PEN. Use either 'PEN DOWN' or 'PEN UP'", line_num);
                         return Err(msg.clone());
                         },
                 };
             },
             "COLOUR" | "COLOR" => {
-                turtle.colour = val.parse::<u32>().expect("Failed to parse colour! Format RGB e.g. 255255255");
+                let colour = val.parse::<u32>();
+                turtle.colour = match colour {
+                    Ok(col) => col,
+                    Err(e) => {
+                        let msg = format!("Line {}: {}", line_num, e);
+                        return Err(msg.clone());
+                    }
+                }
             },
             _ => {
 
@@ -184,7 +197,19 @@ fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut PixelB
                     mov_amt.0 -= 1;
                 }
 
-                let repeats = val.parse::<u32>().expect("Failed to parse repeats! Format as a positive integer.");
+                let repeats = val.parse::<u32>();
+                let repeats = match repeats {
+                    Ok(num_repeats) => num_repeats,
+                    Err(e) => {
+                        let msg = format!("Line {}: {}", line_num, e);
+                        return Err(msg.clone());
+                    }
+                };
+
+                if repeats <= 0 {
+                    let msg = format!("Line {}: repeats must be a positive integer", line_num);
+                    return Err(msg.clone());
+                }
 
                 for _ in 0..repeats {
 
