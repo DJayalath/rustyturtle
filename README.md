@@ -24,6 +24,7 @@ INSTRUCTION OPTION e.g. SOUTH 50
 - The COLOUR command is experimental and not quite working correctly at the moment. If no colour specified, it defaults to white.
 - If compiling, use 'cargo run <filename>' to use your programmed file.
 - The interpreter ignores all code after the second space so you can use this to make comments!
+- Refer to example.txt if you are confused.
 
 
 NOTE: I have tried to ensure the interpreter provides helpful error messages if it fails to translate your instructions. If it doesn't, please 
