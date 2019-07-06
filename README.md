@@ -19,7 +19,8 @@ INSTRUCTION OPTION e.g. SOUTH 50
 - COLOUR/COLOR, RGB (Decimal 24-bit e.g. COLOUR 000255000)
 
 
-### Additional notes Diagonals also supported e.g. NORTHEAST 20
+### Additional notes 
+- Diagonals also supported e.g. NORTHEAST 20
 - The COLOUR command is experimental and not quite working correctly at the moment. If no colour specified, it defaults to white.
 - If compiling, use 'cargo run <filename>' to use your programmed file.
 - The interpreter ignores all code after the second space so you can use this to make comments!
