@@ -16,7 +16,7 @@ INSTRUCTION OPTION e.g. SOUTH 50
 ### List of commands (Instruction, Option)
 - NORTH/EAST/SOUTH/WEST, repeats (0 --> inf.)
 - PEN, UP/DOWN
-- COLOUR/COLOR, RGB (Decimal 24-bit e.g. COLOUR 000255000)
+- COLOUR/COLOR, RGB (Hexadecimal 24-bit e.g. COLOUR 00FF00)
 
 
 ### Additional notes 

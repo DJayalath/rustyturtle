@@ -1,3 +1,5 @@
+extern crate hex;
+
 use std::fs; // For file reading
 use minifb::Key; // For window
 
@@ -114,9 +116,17 @@ pub fn process_file(filename: String, turtle: &mut Turtle, pixel_buffer: &mut Pi
                 };
             },
             "COLOUR" | "COLOR" => {
-                let colour = val.parse::<u32>();
+                let colour = hex::decode(val);
                 turtle.colour = match colour {
-                    Ok(col) => col,
+                    Ok(col) => {
+
+                        let mut col_arr: [u8; 4] = [0; 4];
+                        for i in 1..4 {
+                            col_arr[i] = col[i - 1];
+                        }
+
+                        unsafe { std::mem::transmute::<[u8; 4], u32>(col_arr) }.to_be()
+                    }
                     Err(e) => {
                         let msg = format!("Line {}: {}", line_num, e);
                         return Err(msg.clone());
