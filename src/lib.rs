@@ -203,7 +203,7 @@ pub fn process_input(window: &mut minifb::Window, turtle: &mut Turtle) -> Result
     }
 
     if let Err(e) = turtle.displace(mov_amt) {
-        println!("Application error: {}", e);
+        println!("ERROR - {}", e);
     }
 
     Ok(())
